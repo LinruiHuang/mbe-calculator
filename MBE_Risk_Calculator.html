@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>MBE Risk Calculator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+        }
+        body {
+            background: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: #1e3c72;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .form-card {
+            padding: 20px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 12px;
+        }
+        .input-group label {
+            flex: 0 0 220px;
+            font-weight: 600;
+            color: #0f2b3d;
+        }
+        .input-wrapper {
+            flex: 1;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #1e3c72;
+            box-shadow: 0 0 0 2px rgba(30,60,114,0.2);
+        }
+        .hint {
+            font-size: 0.7rem;
+            color: #5b6e8c;
+            margin-top: 4px;
+        }
+        button {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 40px;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #0f2b4f;
+        }
+        .result-box {
+            background: #eef2ff;
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+            border-left: 6px solid #1e3c72;
+            display: none;
+        }
+        .risk-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1e3c72;
+            margin: 10px 0;
+        }
+        .footnote {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #6c7a91;
+            margin-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+        }
+        .user-guide {
+            margin-top: 30px;
+            background: #f9fafb;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        .user-guide h3 {
+            margin-top: 0;
+            color: #1e3c72;
+        }
+        .guide-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .guide-table th, .guide-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .guide-table th {
+            background: #eef2ff;
+            font-weight: 600;
+        }
+        @media (max-width: 600px) {
+            .input-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .input-group label {
+                margin-bottom: 8px;
+                flex: auto;
+            }
+            .guide-table th, .guide-table td {
+                padding: 6px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>MBE Risk Predictor</h1>
+        <p>Clinical Decision Support Tool</p>
+    </div>
+    <div class="form-card">
+        <form id="riskForm">
+            <div id="inputsContainer"></div>
+            <button type="button" id="calculateBtn">Calculate MBE Risk</button>
+            <button type="button" id="resetBtn" style="background:#6c757d;">Reset</button>
+        </form>
+        <div id="result" class="result-box">
+            <div class="risk-label">Predicted Probability of MBE</div>
+            <div class="risk-value" id="riskValue">-- %</div>
+            <div class="risk-label" id="riskInterpretation"></div>
+        </div>
+
+        <!-- User Guide 模块：已删除 Abbreviation 列 -->
+        <div class="user-guide">
+            <h3>User Guide: Variable Definitions</h3>
+            <table class="guide-table">
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Full Name / Explanation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Systolic blood pressure (mmHg)</td><td>Systolic blood pressure measured at admission (mmHg)</td></tr>
+                    <tr><td>Random blood glucose (mmol/L)</td><td>Random blood glucose level at admission (mmol/L)</td></tr>
+                    <tr><td>ASPECTS (points)</td><td>Alberta Stroke Program Early CT Score; CT-based scoring system for early ischemic changes (0-10)</td></tr>
+                    <tr><td>Brain atrophy</td><td>Presence of cerebral atrophy on imaging</td></tr>
+                    <tr><td>ACA involvement</td><td>Anterior cerebral artery involvement</td></tr>
+                    <tr><td>Collateral circulation</td><td>Collateral circulation status: poor (Tan score 0-1) vs good (Tan score 2-3)</td></tr>
+                    <tr><td>Thrombolysis</td><td>Intravenous thrombolysis administered</td></tr>
+                    <tr><td>EVT</td><td>Endovascular treatment (endovascular thrombectomy performed)</td></tr>
+                    <tr><td>Recanalisation</td><td>Successful recanalisation after treatment</td></tr>
+                    <tr><td>Pulmonary infection</td><td>Presence of pulmonary infection during hospitalization</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footnote">
+            ⚠️ This tool is for research/educational use only. Clinical judgment should always be applied.
+        </div>
+    </div>
+</div>
+
+<script>
+    // 模型系数（自动从 R 中提取）
+    const intercept = 0.209295424447648;
+    const coefficients = [-0.0136,0.1295,-0.191,-0.7975,1.038,-1.1895,0.6881,2.7972,-3.1894,1.5301];
+
+    // 变量定义
+    const variables = [
+  {
+    "id": "Systolic_blood_pressure",
+    "label": "Systolic blood pressure (mmHg)",
+    "type": "numeric",
+    "min": 88,
+    "max": 242,
+    "default": 140,
+    "step": 0.01
+  },
+  {
+    "id": "Glucose",
+    "label": "Random blood glucose (mmol/L)",
+    "type": "numeric",
+    "min": 2.84,
+    "max": 34.96,
+    "default": 6,
+    "step": 0.01
+  },
+  {
+    "id": "ASPECTS",
+    "label": "ASPECTS (points)",
+    "type": "numeric",
+    "min": 0,
+    "max": 10,
+    "default": 8,
+    "step": 1
+  },
+  {
+    "id": "Brain_atrophy",
+    "label": "Brain atrophy",
+    "type": "categorical",
+    "options": ["No", "Yes"],
+    "values": [0, 1],
+    "default": 0
+  },
+  {
+    "id": "ACA_involvement",
+    "label": "ACA involvement",
+    "type": "categorical",
+    "options": ["No", "Yes"],
+    "values": [0, 1],
+    "default": 0
+  },
+  {
+    "id": "Collateral_circulation",
+    "label": "Collateral circulation",
+    "type": "categorical",
+    "options": ["poor (Tan score 0-1)", "good (Tan score 2-3)"],
+    "values": [0, 1],
+    "default": 0
+  },
+  {
+    "id": "Thrombolysis",
+    "label": "Thrombolysis",
+    "type": "categorical",
+    "options": ["No", "Yes"],
+    "values": [0, 1],
+    "default": 0
+  },
+  {
+    "id": "EVT",
+    "label": "EVT",
+    "type": "categorical",
+    "options": ["No", "Yes"],
+    "values": [0, 1],
+    "default": 0
+  },
+  {
+    "id": "Recanalisation",
+    "label": "Recanalisation",
+    "type": "categorical",
+    "options": ["No", "Yes"],
+    "values": [0, 1],
+    "default": 0
+  },
+  {
+    "id": "Pulmonary_infection",
+    "label": "Pulmonary infection",
+    "type": "categorical",
+    "options": ["No", "Yes"],
+    "values": [0, 1],
+    "default": 0
+  }
+];
+
+    function buildForm() {
+        const container = document.getElementById("inputsContainer");
+        container.innerHTML = "";
+        variables.forEach(v => {
+            const div = document.createElement("div");
+            div.className = "input-group";
+            const label = document.createElement("label");
+            label.textContent = v.label;
+            div.appendChild(label);
+            const wrapper = document.createElement("div");
+            wrapper.className = "input-wrapper";
+            let input;
+            if (v.type === "numeric") {
+                input = document.createElement("input");
+                input.type = "number";
+                input.id = v.id;
+                input.min = v.min;
+                input.max = v.max;
+                input.value = v.default;
+                input.step = v.step;
+            } else {
+                input = document.createElement("select");
+                input.id = v.id;
+                v.options.forEach((opt, idx) => {
+                    const option = document.createElement("option");
+                    option.value = v.values[idx];
+                    option.text = opt;
+                    if (v.values[idx] == v.default) option.selected = true;
+                    input.appendChild(option);
+                });
+            }
+            wrapper.appendChild(input);
+            div.appendChild(wrapper);
+            container.appendChild(div);
+        });
+    }
+
+    function calculateRisk() {
+        let linearPredictor = intercept;
+        variables.forEach(v => {
+            const input = document.getElementById(v.id);
+            let value;
+            if (v.type === "numeric") {
+                value = parseFloat(input.value);
+                if (isNaN(value)) value = v.default;
+            } else {
+                value = parseFloat(input.value);
+            }
+            const coef = coefficients[v.id] || 0;
+            linearPredictor += value * coef;
+        });
+        const prob = 1 / (1 + Math.exp(-linearPredictor));
+        const percent = (prob * 100).toFixed(2);
+        document.getElementById("riskValue").innerHTML = percent + "%";
+        let interpretation = "";
+        if (prob < 0.2) interpretation = "Low risk (<20%)";
+        else if (prob < 0.5) interpretation = "Moderate risk (20-50%)";
+        else if (prob < 0.8) interpretation = "High risk (50-80%)";
+        else interpretation = "Very high risk (>80%)";
+        document.getElementById("riskInterpretation").innerHTML = interpretation;
+        document.getElementById("result").style.display = "block";
+    }
+
+    function resetForm() {
+        variables.forEach(v => {
+            const input = document.getElementById(v.id);
+            if (v.type === "numeric") {
+                input.value = v.default;
+            } else {
+                input.value = v.default;
+            }
+        });
+        document.getElementById("result").style.display = "none";
+    }
+
+    window.onload = () => {
+        buildForm();
+        document.getElementById("calculateBtn").addEventListener("click", calculateRisk);
+        document.getElementById("resetBtn").addEventListener("click", resetForm);
+    };
+</script>
+</body>
+</html>
